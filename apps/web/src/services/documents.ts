@@ -8,7 +8,7 @@
  *   local    — IndexedDB bytes + localStorage metadata. Always available.
  */
 
-import { currentMode } from "./config";
+import { currentMode, detectMode } from "./config";
 import * as local from "./localStore";
 import {
   backendUpload,
@@ -114,7 +114,11 @@ export async function uploadDocument(
   onProgress: (pct: number) => void
 ): Promise<UploadOutcome> {
   validateFile(file);
-  const mode = currentMode();
+  // Await detection rather than reading currentMode()'s synchronous guess: on a
+  // first load that guess is "local" until the health probe returns, and an
+  // upload that lands a millisecond early was silently written to the device
+  // instead of sent to the API, with no error and no retry.
+  const mode = await detectMode();
   const now = Date.now();
 
   if (mode === "backend" && !user.isLocal) {

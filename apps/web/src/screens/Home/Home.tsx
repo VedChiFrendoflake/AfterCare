@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { AuthForm } from "../../components/AuthForm";
 
@@ -71,6 +72,28 @@ const FEATURES: Feature[] = [
 
 export default function Home() {
   const { needsSignIn, loading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const signInRef = useRef<HTMLElement | null>(null);
+
+  // Set when a guarded route bounced us here, e.g. tapping "Add a document"
+  // while signed out.
+  const redirectedFrom = (location.state as { from?: string } | null)?.from;
+
+  // The sign-in form sits at the bottom of a long page, so arriving by redirect
+  // otherwise looks like nothing happened.
+  useEffect(() => {
+    if (redirectedFrom && needsSignIn) {
+      signInRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [redirectedFrom, needsSignIn]);
+
+  // Once signed in, finish the journey the user actually started.
+  useEffect(() => {
+    if (redirectedFrom && !loading && !needsSignIn) {
+      navigate(redirectedFrom, { replace: true });
+    }
+  }, [redirectedFrom, needsSignIn, loading, navigate]);
 
   return (
     <div>
@@ -143,8 +166,20 @@ export default function Home() {
       </section>
 
       {needsSignIn && (
-        <section className="divider-section">
-          <h2 style={{ textAlign: "center" }}>Get started</h2>
+        <section
+          className="divider-section"
+          ref={signInRef as React.RefObject<HTMLElement>}
+        >
+          <h2 style={{ textAlign: "center" }}>
+            {redirectedFrom ? "Sign in to continue" : "Get started"}
+          </h2>
+          {redirectedFrom && (
+            <p className="gloss measure" style={{ margin: "0 auto var(--sp4)" }}>
+              {redirectedFrom === "/upload"
+                ? "Your paperwork is stored against your account, so we need you signed in before you add it. You'll come straight back here after."
+                : "You'll be taken straight back once you're signed in."}
+            </p>
+          )}
           <AuthForm />
         </section>
       )}

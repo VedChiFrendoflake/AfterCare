@@ -406,8 +406,15 @@ function warningAction(text: string): Pick<Warning, "action" | "severity"> {
 }
 
 function warningSymptoms(text: string): string[] {
+  // Built from the same source as the gate above. These were two hand-kept
+  // lists and they drifted: the gate let "call your doctor if…" through, then
+  // this one dropped it because it only accepted "call the doctor", so the
+  // warning vanished between the two.
   const match = text.match(
-    /(?:seek urgent care|go to (?:the )?(?:emergency department|er)|call 911|call (?:the )?(?:clinic|doctor|provider))[^.]*?\b(?:for|if|with)\b\s+(.+)/i,
+    new RegExp(
+      `(?:${EMERGENCY_PHRASING_SOURCE})[^.]*?\\b(?:for|if|when|with)\\b\\s+(.+)`,
+      "i",
+    ),
   );
   const after = match?.[1] ?? "";
   if (!after.trim()) return [];
@@ -421,6 +428,25 @@ function warningSymptoms(text: string): string[] {
     .filter((symptom) => !/^(a|an|the|your|their)$/i.test(symptom));
 }
 
+/**
+ * Phrasings that mean "this is an emergency" in a discharge document.
+ *
+ * Discharge paperwork says "go to the ER" far more often than "emergency room",
+ * and the earlier pattern only matched the spelled-out form — so the single most
+ * common way of writing it was dropped silently. A missed red flag is the worst
+ * failure this pipeline has, so abbreviations, non-US emergency numbers, and
+ * "return to hospital" are matched explicitly. The \b guards stop "er"/"ed"
+ * firing inside ordinary words, and the longer alternatives are listed first so
+ * "emergency room" isn't shadowed.
+ *
+ * Kept as a source string because `warningSymptoms` needs the same list with a
+ * suffix appended; two hand-maintained copies is exactly how the gap appeared.
+ */
+const EMERGENCY_PHRASING_SOURCE =
+  "seek\\b|urgent care|go (?:back |straight )?to (?:the )?(?:emergency room|emergency department|emergency|hospital|er|ed)\\b|return to (?:the )?(?:emergency room|emergency department|emergency|hospital|er|ed)\\b|emergency (?:room|department|services)|call (?:911|999|112)\\b|call (?:the |your |their )?(?:clinic|doctor|provider|surgeon|nurse|office)";
+
+const EMERGENCY_PHRASING = new RegExp(`(?:${EMERGENCY_PHRASING_SOURCE})`, "i");
+
 export function fallbackWarnings(
   _warningsText: string,
   fullOcr: OcrResult,
@@ -430,20 +456,12 @@ export function fallbackWarnings(
 
   for (let index = 0; index < fullOcr.lines.length; index += 1) {
     const line = fullOcr.lines[index]!;
-    if (
-      !/(seek|go to .*emergency|call 911|call .*clinic|call .*doctor|call .*provider)/i.test(
-        line.text,
-      )
-    ) {
+    if (!EMERGENCY_PHRASING.test(line.text)) {
       continue;
     }
 
     const window = windowFromLine(fullOcr, index);
-    if (
-      !/(seek urgent care|go to .*emergency|call 911|call .*clinic|call .*doctor|call .*provider)/i.test(
-        window.text,
-      )
-    ) {
+    if (!EMERGENCY_PHRASING.test(window.text)) {
       continue;
     }
 

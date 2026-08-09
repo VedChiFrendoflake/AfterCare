@@ -1,4 +1,4 @@
-import { Link, Navigate, Route, Routes } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import { AccessibilityProvider } from "./hooks/useAccessibility";
 import { ReadAloudButton } from "./components/ReadAloudButton";
@@ -29,11 +29,17 @@ function Loading() {
 }
 
 /** Only redirects when this deployment actually expects a sign-in. In local mode
- *  a user always exists, so every route is reachable immediately. */
+ *  a user always exists, so every route is reachable immediately.
+ *
+ *  Carries the attempted path along. Bouncing someone to the top of a long
+ *  marketing page with no explanation reads as "that button is broken" — which
+ *  is exactly how tapping "Add a document" while signed out used to behave. */
 function Guarded({ children }: { children: React.ReactNode }) {
   const { loading, needsSignIn } = useAuth();
+  const location = useLocation();
   if (loading) return <Loading />;
-  if (needsSignIn) return <Navigate to="/" replace />;
+  if (needsSignIn)
+    return <Navigate to="/" replace state={{ from: location.pathname }} />;
   return <>{children}</>;
 }
 
