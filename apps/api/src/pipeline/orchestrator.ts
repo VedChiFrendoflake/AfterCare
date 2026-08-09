@@ -43,7 +43,8 @@ export function resolveAppointmentDate(
   return dateText ?? "";
 }
 
-function publicPlan(plan: PipelineRecoveryPlan): RecoveryPlan {
+/** Exported for tests: the pipeline-to-API shape conversion, warnings included. */
+export function publicPlan(plan: PipelineRecoveryPlan): RecoveryPlan {
   return {
     documentId: plan.documentId,
     status: "ready",
@@ -59,12 +60,27 @@ function publicPlan(plan: PipelineRecoveryPlan): RecoveryPlan {
     })),
     warnings: plan.warnings.map((warning) => {
       const action = warning.action.toLowerCase();
+      // Word boundaries matter here: a bare `includes("er")` matched "provider"
+      // and turned every routine "call your provider" into an ER instruction,
+      // while "seek urgent care" matched nothing and was reported as routine
+      // even though the stage had classified it as an emergency.
+      const mentions911 = /\b(?:911|999|112)\b/.test(action);
+      const mentionsEmergency =
+        /\b(?:er|ed|a&e|emergency)\b/.test(action) || /urgent care/.test(action);
+
+      // `severity` is the detection stage's own judgement, so it wins. The text
+      // is only consulted when severity is absent, and errs toward escalating —
+      // a false emergency costs a wasted trip, a missed one costs much more.
+      const isEmergency = warning.severity
+        ? warning.severity === "emergency"
+        : mentionsEmergency;
+
       return {
         id: warning.id,
         symptom: warning.symptom,
-        action: action.includes("911")
+        action: mentions911
           ? ("call_911" as const)
-          : action.includes("emergency") || action.includes("er")
+          : isEmergency
             ? ("emergency_room" as const)
             : ("call_provider" as const),
         confidence: warning.confidence,
