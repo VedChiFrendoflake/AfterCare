@@ -225,6 +225,75 @@ main.content{flex:1;max-width:900px;width:100%;margin:0 auto;padding:var(--sp6) 
 
 .term-popover{position:absolute;background:var(--color-text);color:var(--color-bg);padding:10px 14px;border-radius:var(--radius-sm);font-size:15px;max-width:280px;z-index:50;box-shadow:var(--shadow-lg);}
 
+/* ------------------------------------------------------------- page header */
+
+.page-head{margin-bottom:var(--sp6);}
+.page-head h1{margin-bottom:var(--sp2);}
+.page-head .lede{font-size:calc(18px * var(--scale));color:var(--n700);margin:0;max-width:62ch;}
+
+/* ------------------------------------------------------------------- cards */
+
+/* A left rail carries the tone. It reads at a glance without relying on colour
+   alone — every card still has its icon and its words. */
+.card-panel{position:relative;overflow:hidden;padding:var(--sp4) var(--sp4) var(--sp4) calc(var(--sp4) + 4px);}
+.card-panel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent;}
+.card-panel.tone-accent::before{background:var(--color-accent);}
+.card-panel.tone-alert::before{background:var(--color-accent-2);}
+
+.card-head{display:flex;align-items:center;gap:var(--sp2);margin-bottom:var(--sp2);}
+.card-head h2{margin:0;font-size:calc(21px * var(--scale));}
+
+.card-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;
+  border-radius:10px;flex:none;font-size:20px;background:var(--n200);color:var(--n800);}
+.card-icon.tone-accent{background:var(--a100);color:var(--a700);}
+.card-icon.tone-alert{background:var(--m100);color:var(--m700);}
+:root[data-dark="true"] .card-icon.tone-accent{background:#0d2b36;color:#7fdcff;}
+:root[data-dark="true"] .card-icon.tone-alert{background:#3a0a1c;color:#ff9db5;}
+
+.card-count{margin-left:auto;font-size:15px;font-weight:700;min-width:28px;height:28px;padding:0 9px;
+  display:inline-flex;align-items:center;justify-content:center;border-radius:999px;
+  background:var(--n200);color:var(--n800);}
+.card-body>:last-child{margin-bottom:0;}
+.card-action{display:inline-flex;align-items:center;gap:6px;margin-top:var(--sp3);
+  color:var(--color-accent);font-weight:600;font-size:calc(16px * var(--scale));}
+
+a.card-link{display:block;text-decoration:none;color:inherit;
+  transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;}
+a.card-link:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--n400);}
+a.card-link:hover .card-action{text-decoration:underline;}
+a.card-link:focus-visible{box-shadow:var(--ring);}
+:root[data-motion="reduced"] a.card-link{transition:none;}
+:root[data-motion="reduced"] a.card-link:hover{transform:none;}
+
+/* ------------------------------------------------------------------ layout */
+
+/* auto-fit so the dashboard is one column on a phone and two on a laptop with
+   no breakpoint to maintain. */
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--sp3);align-items:start;}
+.grid-cards>.divider-section{margin-bottom:0;}
+.span-all{grid-column:1/-1;}
+
+/* A compact list for card previews: the name leads, the detail sits under it
+   in a lighter weight, so a column of them scans vertically. */
+.mini-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--sp2);}
+.mini-list li{display:flex;flex-direction:column;gap:1px;padding-bottom:var(--sp2);
+  border-bottom:1px solid var(--color-divider);font-size:calc(17px * var(--scale));}
+.mini-list li:last-child{border-bottom:none;padding-bottom:0;}
+.mini-list .gloss{font-size:15px;}
+
+/* --------------------------------------------------------- schedule slots */
+
+/* These report a schedule; they are not controls. The old styling reused .chip,
+   so all three looked pressable and the inactive two looked merely unselected
+   rather than "not part of this prescription". */
+.slots{display:flex;gap:6px;flex-wrap:wrap;margin-top:var(--sp2);}
+.slot{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;
+  font-size:14px;font-weight:600;border:1px solid var(--color-divider);color:var(--n600);background:transparent;}
+.slot.on{background:var(--a100);border-color:var(--a300);color:var(--a800);}
+.slot.on i{color:var(--color-accent);}
+.slot.off{opacity:.55;text-decoration:line-through;}
+:root[data-dark="true"] .slot.on{background:#0d2b36;border-color:#1c5468;color:#cdeeff;}
+
 /* ---------------------------------------------------------------- language */
 
 /* Google's widget renders its own dropdown, a top banner that shifts the whole

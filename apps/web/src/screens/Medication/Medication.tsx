@@ -27,12 +27,24 @@ function MedicationRow({ med }: { med: Medication }) {
       <p className="gloss" style={{ marginTop: 8 }}>
         {med.purpose}
       </p>
-      <div className="flex" style={{ marginTop: 8, flexWrap: "wrap" }}>
-        <span className={`chip ${med.morning ? "active" : ""}`}>Morning</span>
-        <span className={`chip ${med.afternoon ? "active" : ""}`}>
-          Afternoon
-        </span>
-        <span className={`chip ${med.evening ? "active" : ""}`}>Evening</span>
+      {/* These report a schedule rather than offering a choice. Styled as
+          chips, all three read as pressable and the two that aren't part of
+          the prescription looked merely unselected. The icon and the
+          strike-through carry the meaning, so it isn't colour alone. */}
+      <div className="slots">
+        {(
+          [
+            ["Morning", med.morning, "ph-sun-horizon"],
+            ["Afternoon", med.afternoon, "ph-sun"],
+            ["Evening", med.evening, "ph-moon"],
+          ] as const
+        ).map(([label, on, icon]) => (
+          <span key={label} className={`slot ${on ? "on" : "off"}`}>
+            <i className={`ph-duotone ${icon}`} aria-hidden="true" />
+            {label}
+            <span className="sr-only">{on ? " — scheduled" : " — not scheduled"}</span>
+          </span>
+        ))}
       </div>
       {open && (
         <div
