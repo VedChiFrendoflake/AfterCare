@@ -20,24 +20,30 @@ import { markFinished, recordStageEvent } from "./processingProgress";
 import type { AppUser } from "./session";
 import type { RecoveryData, UploadedDocument } from "../types";
 
-const MAX_BYTES = 20 * 1024 * 1024;
+// These mirror the API's own limits (apps/api/src/routes/upload.ts). They used
+// to be more generous than the server, so a HEIC photo or a 16MB scan passed
+// validation here and was then rejected on upload — the failure surfaced far
+// from the cause and looked like "upload is broken".
+//
+// HEIC is excluded on purpose rather than as an oversight: vision transcription
+// can't read it. Leaving it out of `accept` also makes Safari convert an iPhone
+// photo to JPEG on the way in, which is what we want anyway.
+const MAX_BYTES = 15 * 1024 * 1024;
 const ACCEPTED = [
   "application/pdf",
   "image/jpeg",
   "image/jpg",
   "image/png",
-  "image/heic",
-  "image/heif",
   "image/webp",
 ];
-const ACCEPTED_EXT = [".pdf", ".jpg", ".jpeg", ".png", ".heic", ".heif", ".webp"];
+const ACCEPTED_EXT = [".pdf", ".jpg", ".jpeg", ".png", ".webp"];
 
 export function validateFile(file: File): void {
   const name = file.name.toLowerCase();
   const ok = ACCEPTED.includes(file.type) || ACCEPTED_EXT.some((e) => name.endsWith(e));
-  if (!ok) throw new Error("Please choose a PDF or a photo (JPG, PNG, or HEIC).");
+  if (!ok) throw new Error("Please choose a PDF or a photo (JPG, PNG, or WebP).");
   if (file.size > MAX_BYTES) {
-    throw new Error("That file is over 20MB. Try a smaller scan or a lower-resolution photo.");
+    throw new Error("That file is over 15MB. Try a smaller scan or a lower-resolution photo.");
   }
 }
 

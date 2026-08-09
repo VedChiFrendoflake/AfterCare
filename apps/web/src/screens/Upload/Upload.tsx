@@ -218,7 +218,10 @@ export default function Upload() {
             <input
               ref={photoInputRef}
               type="file"
-              accept="image/*"
+              /* Not `image/*`: that offered HEIC, GIF and TIFF, which the API
+                 rejects on upload. Naming the formats also gets iOS to hand
+                 over a JPEG rather than the HEIC it stores natively. */
+              accept="image/jpeg,image/png,image/webp"
               multiple
               hidden
               onChange={(e) => {

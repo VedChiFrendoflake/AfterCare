@@ -4,6 +4,27 @@ import { deleteStoredDocument, loadDocument } from "../integrations/storage.js";
 
 export const documentsRouter = Router();
 
+/**
+ * The user's own documents, newest first. Deliberately metadata only — never
+ * the stored bytes and never the extracted plan, which have their own routes
+ * and their own ownership checks.
+ */
+documentsRouter.get("/", (req, res, next) => {
+  try {
+    const documents = repository.listDocuments(req.userId!).map((document) => ({
+      id: document.id,
+      filename: document.filename,
+      mimeType: document.mimeType,
+      uploadedAt: document.uploadedAt,
+      status: document.status,
+      ...(document.failure ? { failure: document.failure } : {}),
+    }));
+    res.json({ data: documents });
+  } catch (error) {
+    next(error);
+  }
+});
+
 documentsRouter.get("/:documentId/original", async (req, res, next) => {
   try {
     const document = repository.findDocument(

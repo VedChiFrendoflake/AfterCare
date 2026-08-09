@@ -94,6 +94,12 @@ export const repository = {
         document.userId === userId && document.fileHash === fileHash,
     );
   },
+  /** This user's documents, newest upload first. */
+  listDocuments(userId: string) {
+    return [...state.documents.values()]
+      .filter((document) => document.userId === userId)
+      .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+  },
   updateDocument(documentId: string, patch: Partial<DocumentRecord>) {
     const document = state.documents.get(documentId);
     if (!document) return undefined;

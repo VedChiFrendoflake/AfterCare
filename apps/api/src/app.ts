@@ -44,7 +44,10 @@ export function createApp(options: CreateAppOptions = {}) {
     cors({
       origin: corsOriginDelegate(config.WEB_ORIGIN),
       credentials: true,
-      methods: ["GET", "POST", "OPTIONS"],
+      // DELETE is here because DELETE /documents/:id exists; omitting it meant
+      // the browser's preflight refused the only route that removes a patient's
+      // uploaded document.
+      methods: ["GET", "POST", "DELETE", "OPTIONS"],
       allowedHeaders: ["Authorization", "Content-Type", "Last-Event-ID"],
     }),
   );

@@ -6,7 +6,18 @@ import { hashFile, storeDocument } from "../integrations/storage.js";
 import { uploadRateLimit } from "../middleware/rateLimits.js";
 import { pipelineQueue, type PipelineQueue } from "../queue/pipelineQueue.js";
 
-const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png"]);
+// Must stay in step with IMAGE_MIME_TYPES in ../pipeline/ocr.ts (which already
+// transcribes webp) and with ACCEPTED in apps/web/src/services/documents.ts.
+// HEIC is deliberately absent: vision transcription can't read it without a
+// client-side conversion, so the web input excludes it and Safari hands over
+// JPEG instead.
+const allowedTypes = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+]);
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 15 * 1024 * 1024 },

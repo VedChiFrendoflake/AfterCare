@@ -61,21 +61,39 @@ beforeEach(() => {
   });
 });
 
+/** The hidden photo input, found by kind rather than by an exact accept string. */
+function photoInput(): HTMLInputElement {
+  const inputs = [
+    ...document.querySelectorAll<HTMLInputElement>('input[type="file"]'),
+  ];
+  const photo = inputs.find((input) => input.accept.includes("image/"));
+  if (!photo) throw new Error("photo input not found");
+  return photo;
+}
+
 describe("Upload screen", () => {
   it("accepts multiple files on both inputs", () => {
     renderScreen();
     expect(pdfInput()).toHaveAttribute("multiple");
-
-    const photo = document.querySelector('input[accept="image/*"]');
-    expect(photo).toHaveAttribute("multiple");
+    expect(photoInput()).toHaveAttribute("multiple");
   });
 
   it("does not force the camera on the photo input", () => {
     // `capture` would remove "Photo Library" from the iOS sheet and disable
     // multi-select entirely.
     renderScreen();
-    const photo = document.querySelector('input[accept="image/*"]');
-    expect(photo).not.toHaveAttribute("capture");
+    expect(photoInput()).not.toHaveAttribute("capture");
+  });
+
+  it("only offers image formats the API will accept", () => {
+    // `image/*` let HEIC and TIFF through the picker, and the upload then
+    // failed server-side — far from the cause, and looking like a broken app.
+    renderScreen();
+    const { accept } = photoInput();
+    expect(accept).toContain("image/jpeg");
+    expect(accept).toContain("image/png");
+    expect(accept).not.toContain("image/*");
+    expect(accept).not.toContain("heic");
   });
 
   it("uploads every selected file", async () => {

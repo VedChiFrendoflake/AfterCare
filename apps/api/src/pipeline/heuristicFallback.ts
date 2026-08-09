@@ -214,6 +214,22 @@ function extractTiming(text: string): string {
   return "";
 }
 
+/**
+ * Drops the instruction verb a medication line usually opens with.
+ *
+ * The name pattern starts at a capital letter, so "Take Lisinopril 10mg" put
+ * "Take Lisinopril" in the name field — which then rendered as "Take Take
+ * Lisinopril" once the timeline prefixed its own verb. Only strips when a real
+ * name follows, so a drug legitimately called "Take..." isn't mangled away.
+ */
+function stripLeadingVerb(name: string): string {
+  const stripped = name.replace(
+    /^(take|takes|taking|continue|start|begin|stop|use|apply|inject|give|administer|resume|swallow)\s+/i,
+    "",
+  );
+  return stripped.trim().length >= 3 ? stripped.trim() : name;
+}
+
 export function fallbackMedications(
   medicationsText: string,
   fullOcr: OcrResult,
@@ -232,7 +248,7 @@ export function fallbackMedications(
     );
     if (!match?.groups) continue;
 
-    const name = cleanInstruction(match.groups.name ?? "");
+    const name = stripLeadingVerb(cleanInstruction(match.groups.name ?? ""));
     const dose = cleanInstruction(match.groups.dose ?? "");
     const rest = cleanInstruction(match.groups.rest ?? "");
     if (!name || !dose) continue;
