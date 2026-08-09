@@ -7,13 +7,30 @@
   --m100:#fff1f4;--m200:#ffdee6;--m300:#ffc0d0;--m400:#ff90b1;--m500:#ff458e;--m600:#d82071;--m700:#aa0b56;--m800:#790e3d;--m900:#4b1528;
   --level-green:#1a7f37;--level-orange:#b45309;--level-red:#c0271c;
   --sp1:5px;--sp2:10px;--sp3:15px;--sp4:20px;--sp6:30px;--sp8:40px;
-  --radius:2px;
+  --radius:8px;
+  --radius-sm:6px;
+  --radius-lg:14px;
   --scale:1;
   --line-height:1.6;
+  /* Headings need their own leading. Body copy is set at 1.6 for readability,
+     but inheriting that onto a 46px display size opened a gap wide enough to
+     read as two unrelated lines rather than one sentence. */
+  --line-height-heading:1.15;
+  /* Elevation, kept deliberately shallow: this is a document the reader is
+     meant to trust, so surfaces lift just enough to separate from the page. */
+  --shadow-sm:0 1px 2px rgba(16,24,32,.06), 0 1px 3px rgba(16,24,32,.05);
+  --shadow-md:0 2px 4px rgba(16,24,32,.06), 0 4px 12px rgba(16,24,32,.07);
+  --shadow-lg:0 8px 24px rgba(16,24,32,.10), 0 2px 6px rgba(16,24,32,.06);
+  --ring:0 0 0 3px color-mix(in srgb,var(--color-accent) 28%,transparent);
 }
 :root[data-dark="true"]{
   --color-bg:#1b1a1a; --color-surface:#242222; --color-text:#f2efef;
   --color-divider:color-mix(in srgb,#f2efef 18%,transparent);
+  /* Shadows tuned for light backgrounds vanish on dark ones, so surfaces are
+     separated by a lifted border plus a deeper shadow instead. */
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 2px 6px rgba(0,0,0,.45);
+  --shadow-lg:0 10px 28px rgba(0,0,0,.55);
   --n100:#2d2b2b;--n200:#3a3838;--n300:#4a4747;--n400:#5c5959;--n500:#726e6e;--n600:#8d8989;--n700:#a8a4a4;--n800:#c7c3c3;--n900:#eeeaea;
   --level-green:#3fb950;--level-orange:#d29922;--level-red:#f2695f;
 }
@@ -80,17 +97,33 @@ input,select,textarea{background:var(--n100);border:1px solid var(--n400);border
 
 :root[data-motion="reduced"] *,:root[data-motion="reduced"] *::before,:root[data-motion="reduced"] *::after{animation-duration:.001ms !important;transition-duration:.001ms !important;}
 
-h1{font-size:calc(46px * var(--scale));font-weight:700;letter-spacing:-.02em;margin:0 0 10px;}
-h2{font-size:calc(28px * var(--scale));font-weight:600;margin:0 0 6px;}
-h3{font-size:calc(21px * var(--scale));font-weight:600;margin:0;}
+h1,h2,h3{line-height:var(--line-height-heading);}
+/* Balancing helps a display heading hold together, but on a short card title it
+   forces an even two-line break mid-phrase ("Lays out / your medications"). */
+h1,h2{text-wrap:balance;}
+h3{text-wrap:pretty;}
+/* Fluid rather than fixed: 46px is right on a laptop and far too big on a
+   375px phone, where it broke a five-word heading across four lines. clamp
+   still multiplies by --scale, so the accessibility text-size control keeps
+   working on top of it. */
+h1{font-size:calc(clamp(32px,7.5vw,46px) * var(--scale));font-weight:700;letter-spacing:-.022em;margin:0 0 var(--sp3);}
+h2{font-size:calc(clamp(23px,4.2vw,28px) * var(--scale));font-weight:600;letter-spacing:-.012em;margin:0 0 var(--sp2);}
+h3{font-size:calc(21px * var(--scale));font-weight:600;letter-spacing:-.006em;margin:0;}
 
-.btn{border-radius:var(--radius);padding:12px 20px;font-size:calc(17px * var(--scale));font-weight:600;transition:transform .12s ease,background .15s ease;}
-.btn:active{transform:scale(.97);}
+/* An <a> styled as a button is still an <a>, so it kept the browser's default
+   underline and the primary calls to action read as underlined text sitting in
+   a coloured box. */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:var(--radius);padding:12px 20px;font-size:calc(17px * var(--scale));
+  font-weight:600;text-decoration:none;line-height:1.2;
+  transition:transform .12s ease,background .15s ease,box-shadow .15s ease,border-color .15s ease;}
+.btn:active{transform:translateY(1px) scale(.995);}
 .btn:disabled{opacity:.45;cursor:not-allowed;}
-.btn-solid{background:var(--color-accent);color:#fff;}
-.btn-solid:hover:not(:disabled){background:var(--a700);}
-.btn-outline{border:1px solid var(--color-text);background:transparent;}
-.btn-outline:hover:not(:disabled){background:var(--n100);}
+.btn:focus-visible{box-shadow:var(--ring);}
+.btn-solid{background:var(--color-accent);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-solid:hover:not(:disabled){background:var(--a700);box-shadow:var(--shadow-md);}
+.btn-outline{border:1px solid var(--n400);background:var(--color-bg);}
+.btn-outline:hover:not(:disabled){background:var(--n100);border-color:var(--color-text);}
 .btn-ghost{color:var(--color-accent);background:transparent;}
 .btn-ghost:hover{text-decoration:underline;}
 .btn-block{width:100%;}
@@ -100,8 +133,11 @@ h3{font-size:calc(21px * var(--scale));font-weight:600;margin:0;}
 .field label{font-size:15px;font-weight:600;}
 .field input{width:100%;}
 
-.card{border:1px solid var(--color-divider);border-radius:6px;padding:var(--sp4);background:var(--color-surface);}
-.chip{border:1px solid var(--n400);border-radius:20px;padding:6px 14px;font-size:15px;cursor:pointer;background:transparent;}
+.card{border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--sp4);
+  background:var(--color-surface);box-shadow:var(--shadow-sm);}
+.chip{border:1px solid var(--n400);border-radius:999px;padding:6px 14px;font-size:15px;cursor:pointer;
+  background:transparent;transition:background .15s ease,border-color .15s ease;}
+.chip:hover{border-color:var(--color-text);}
 .chip.active{background:var(--color-text);color:var(--color-bg);border-color:var(--color-text);}
 .tag{display:inline-block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:2px;font-weight:700;}
 .tag-high{background:var(--m200);color:var(--m800);}
@@ -187,4 +223,66 @@ main.content{flex:1;max-width:900px;width:100%;margin:0 auto;padding:var(--sp6) 
 .upload-dropzone{border:2px dashed var(--n400);border-radius:8px;padding:var(--sp8) var(--sp4);text-align:center;transition:border-color .15s,background .15s;}
 .upload-dropzone.drag{border-color:var(--color-accent);background:var(--a100);}
 
-.term-popover{position:absolute;background:var(--color-text);color:var(--color-bg);padding:10px 14px;border-radius:6px;font-size:15px;max-width:280px;z-index:50;}
+.term-popover{position:absolute;background:var(--color-text);color:var(--color-bg);padding:10px 14px;border-radius:var(--radius-sm);font-size:15px;max-width:280px;z-index:50;box-shadow:var(--shadow-lg);}
+
+/* ---------------------------------------------------------------- language */
+
+/* Google's widget renders its own dropdown, a top banner that shifts the whole
+   page down, and an <iframe> toolbar. The app ships its own picker, so all of
+   that is suppressed rather than shown alongside it. */
+#google_translate_element{display:none !important;}
+.goog-te-banner-frame,.skiptranslate iframe{display:none !important;}
+body{top:0 !important;}
+.goog-tooltip,.goog-tooltip:hover{display:none !important;}
+.goog-text-highlight{background:none !important;box-shadow:none !important;}
+
+.lang-select{display:flex;align-items:center;gap:6px;color:var(--n700);}
+.lang-select i{font-size:20px;color:var(--color-accent);}
+.lang-select select{
+  appearance:none;background:transparent;border:1px solid var(--n400);
+  border-radius:var(--radius);padding:8px 30px 8px 10px;font-size:calc(15px * var(--scale));
+  font-weight:600;color:var(--color-text);cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+  transition:border-color .15s ease,box-shadow .15s ease;
+}
+.lang-select select:hover{border-color:var(--color-text);}
+.lang-select select:focus-visible{box-shadow:var(--ring);}
+
+.translation-notice{
+  display:flex;gap:10px;align-items:flex-start;
+  background:var(--a100);border-bottom:1px solid var(--a300);
+  padding:12px calc(var(--sp4) + env(safe-area-inset-right)) 12px calc(var(--sp4) + env(safe-area-inset-left));
+  font-size:15px;color:var(--a900);
+}
+.translation-notice i{font-size:20px;flex:none;margin-top:2px;}
+.translation-notice p{margin:0;max-width:70ch;}
+:root[data-dark="true"] .translation-notice{background:#0d2b36;border-color:#1c5468;color:#d6f2ff;}
+
+/* ----------------------------------------------------------------- desktop */
+
+/* The bottom bar is a phone pattern. Past the point where the content column
+   stops growing, it becomes a floating strip pinned to the bottom of a wide
+   empty screen, so navigation moves up into the header instead. */
+.topbar-nav{display:none;}
+@media (min-width:900px){
+  .bottom-nav{display:none;}
+  main.content{padding-bottom:var(--sp8);}
+  .topbar-nav{display:flex;align-items:center;gap:var(--sp1);}
+  .topbar-nav a{
+    display:flex;align-items:center;gap:7px;text-decoration:none;color:var(--n700);
+    padding:8px 12px;border-radius:var(--radius);font-size:calc(16px * var(--scale));
+    font-weight:600;transition:background .15s ease,color .15s ease;
+  }
+  .topbar-nav a i{font-size:19px;}
+  .topbar-nav a:hover{background:var(--n100);color:var(--color-text);}
+  .topbar-nav a.active{color:var(--color-accent);background:var(--a100);}
+  :root[data-dark="true"] .topbar-nav a.active{background:#0d2b36;}
+}
+/* Below that the header would overflow, so it wraps rather than squashing the
+   logo and the language picker into each other. */
+@media (max-width:520px){
+  .topbar{flex-wrap:wrap;row-gap:var(--sp2);}
+  .lang-select select{padding:6px 26px 6px 8px;}
+}

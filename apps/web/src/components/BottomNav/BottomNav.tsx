@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
-const PRIMARY = [
+/** Shared with the desktop header nav so the two can't drift apart. */
+export const PRIMARY = [
   { to: "/dashboard", label: "Home", icon: "ph-rows" },
   { to: "/today", label: "Today", icon: "ph-sun-horizon" },
   { to: "/medications", label: "Meds", icon: "ph-pill" },

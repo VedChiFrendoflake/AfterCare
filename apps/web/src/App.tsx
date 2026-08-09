@@ -1,9 +1,13 @@
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import { AccessibilityProvider } from "./hooks/useAccessibility";
 import { ReadAloudButton } from "./components/ReadAloudButton";
 import { AIStatusBanner } from "./components/AIStatusBanner";
-import { BottomNav } from "./components/BottomNav/BottomNav";
+import {
+  LanguageSelector,
+  TranslationNotice,
+} from "./components/LanguageSelector";
+import { BottomNav, PRIMARY } from "./components/BottomNav/BottomNav";
 
 import Home from "./screens/Home/Home";
 import Upload from "./screens/Upload/Upload";
@@ -78,14 +82,38 @@ export default function App() {
       <div className="app-shell">
         <a href="#main-content" className="sr-only">Skip to main content</a>
         <header className="topbar">
-          <Link to="/" className="logo" aria-label="AfterCare — go to the homepage">
+          {/* translate="no": the product name is a name. Left alone, Google
+              rendered it "Cuidado por los convalecientes", which is both wrong
+              and long enough to wrap the header onto two lines. */}
+          <Link
+            to="/"
+            className="logo notranslate"
+            translate="no"
+            aria-label="AfterCare — go to the homepage"
+          >
             <i className="ph-duotone ph-heartbeat" aria-hidden="true" />
             AfterCare
           </Link>
+          {user && !needsSignIn && (
+            <nav className="topbar-nav" aria-label="Primary">
+              {PRIMARY.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                >
+                  <i className={`ph-duotone ${item.icon}`} aria-hidden="true" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
           <span className="spacer" />
+          <LanguageSelector />
           <ReadAloudButton />
         </header>
 
+        <TranslationNotice />
         <AIStatusBanner />
 
         <main className="content" id="main-content">

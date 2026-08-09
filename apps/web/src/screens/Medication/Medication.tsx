@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RecoveryGate } from "../../components/RecoveryGate";
 import { EmptyState } from "../../components/EmptyState";
+import { Verbatim } from "../../components/Verbatim";
 import type { Medication } from "../../types";
 
 function MedicationRow({ med }: { med: Medication }) {
@@ -9,11 +10,11 @@ function MedicationRow({ med }: { med: Medication }) {
     <div className="card divider-section">
       <div className="row-between">
         <div>
-          <h3>{med.name}</h3>
-          <p className="gloss">
+          <Verbatim as="h3">{med.name}</Verbatim>
+          <Verbatim as="p" className="gloss">
             {med.genericName ? `${med.genericName} · ` : ""}
             {med.dose} · {med.frequency}
-          </p>
+          </Verbatim>
         </div>
         <button
           className="btn-ghost"

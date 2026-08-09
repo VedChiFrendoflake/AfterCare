@@ -9,6 +9,7 @@ import {
   type MedicationSlot,
 } from "@discharge-guide/shared-types";
 import { RecoveryGate } from "../../components/RecoveryGate";
+import { Verbatim } from "../../components/Verbatim";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { dosesFor, mergeTakenAt, recordDose, subscribeDoses } from "../../services/adherence";
@@ -104,10 +105,10 @@ function PlanForToday({ data }: { data: RecoveryData }) {
               </p>
               {asNeeded.map((med) => (
                 <div key={med.id} className="card" style={{ marginTop: "var(--sp3)" }}>
-                  <h3>{med.name}</h3>
-                  <p className="gloss" style={{ margin: 0 }}>
+                  <Verbatim as="h3">{med.name}</Verbatim>
+                  <Verbatim as="p" className="gloss">
                     {[med.dose, med.frequency].filter(Boolean).join(" · ")}
-                  </p>
+                  </Verbatim>
                 </div>
               ))}
             </section>
@@ -223,10 +224,10 @@ function DoseRow({
 
   return (
     <div className="card" style={{ marginTop: "var(--sp3)" }}>
-      <h3>{medication.name}</h3>
-      <p className="gloss" style={{ margin: 0 }}>
+      <Verbatim as="h3">{medication.name}</Verbatim>
+      <Verbatim as="p" className="gloss">
         {[medication.dose, medication.frequency].filter(Boolean).join(" · ")}
-      </p>
+      </Verbatim>
       <div className="flex" style={{ marginTop: 8, flexWrap: "wrap" }}>
         {slots.map((slot) => (
           <span key={slot} className="chip active">
