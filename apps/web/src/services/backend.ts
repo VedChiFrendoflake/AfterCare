@@ -33,6 +33,9 @@ const TOKEN_KEY = "aftercare:tokens";
 export interface BackendUser {
   id: string;
   email: string;
+  /** Clinician accounts see the care dashboard instead of a recovery guide. */
+  role?: "patient" | "clinician";
+  displayName?: string;
 }
 
 interface StoredTokens {
@@ -103,7 +106,7 @@ async function readError(res: Response): Promise<string> {
   return (await readApiError(res)).message;
 }
 
-async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+export async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const tokens = readTokens();
   if (!tokens) throw new SessionExpiredError();
   const res = await fetch(`${apiBaseUrl}${path}`, {
@@ -119,11 +122,16 @@ async function authedFetch(path: string, init: RequestInit = {}): Promise<Respon
 
 /* ------------------------------- auth ------------------------------- */
 
-async function credentials(path: "register" | "login", email: string, password: string) {
+async function credentials(
+  path: "register" | "login",
+  email: string,
+  password: string,
+  extra: { role?: "patient" | "clinician"; displayName?: string } = {},
+) {
   const res = await fetch(`${apiBaseUrl}/auth/${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, ...extra }),
   });
   if (!res.ok) throw new Error(await readError(res));
   const body = (await res.json()) as StoredTokens;
@@ -131,8 +139,13 @@ async function credentials(path: "register" | "login", email: string, password: 
   return body.user;
 }
 
-export const backendRegister = (email: string, password: string) =>
-  credentials("register", email, password);
+export const backendRegister = (
+  email: string,
+  password: string,
+  role: "patient" | "clinician" = "patient",
+  displayName?: string,
+) =>
+  credentials("register", email, password, { role, displayName });
 export const backendLogin = (email: string, password: string) =>
   credentials("login", email, password);
 

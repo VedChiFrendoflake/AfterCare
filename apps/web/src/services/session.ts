@@ -73,12 +73,18 @@ export async function signIn(email: string, password: string): Promise<AppUser> 
   return { uid: u.uid, email: u.email, isLocal: false };
 }
 
-export async function signUp(email: string, password: string): Promise<AppUser> {
+export async function signUp(
+  email: string,
+  password: string,
+  role: "patient" | "clinician" = "patient",
+  displayName?: string,
+): Promise<AppUser> {
   const mode = currentMode();
   if (mode === "backend") {
-    const user = await backendRegister(email, password);
+    const user = await backendRegister(email, password, role, displayName);
     return { uid: user.id, email: user.email, isLocal: false };
   }
+  // Only the API models roles; a Firebase or local session is always a patient.
   const { signUp: firebaseSignUp } = await import("./auth");
   const u = await firebaseSignUp(email, password);
   return { uid: u.uid, email: u.email, isLocal: false };

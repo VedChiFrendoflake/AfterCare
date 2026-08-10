@@ -8,6 +8,7 @@ import {
   TranslationNotice,
 } from "./components/LanguageSelector";
 import { BottomNav, PRIMARY } from "./components/BottomNav/BottomNav";
+import { isClinician } from "./services/care";
 
 import Home from "./screens/Home/Home";
 import Upload from "./screens/Upload/Upload";
@@ -23,6 +24,8 @@ import CaregiverMode from "./screens/CaregiverMode/CaregiverMode";
 import AskAI from "./screens/AskAI/AskAI";
 import ExplainTerms from "./screens/ExplainTerms/ExplainTerms";
 import Accessibility from "./screens/Accessibility/Accessibility";
+import CareAccess from "./screens/CareAccess/CareAccess";
+import Clinician from "./screens/Clinician/Clinician";
 
 function Loading() {
   return (
@@ -58,7 +61,14 @@ function AppRoutes() {
       <Route path="/" element={loading ? <Loading /> : <Home />} />
       <Route path="/upload" element={<Guarded><Upload /></Guarded>} />
       <Route path="/processing/:documentId" element={<Guarded><Processing /></Guarded>} />
-      <Route path="/dashboard" element={<Guarded><Dashboard /></Guarded>} />
+      {/* A clinician has no discharge document of their own, so the patient
+          dashboard would only ever show them an empty state. */}
+      <Route
+        path="/dashboard"
+        element={
+          <Guarded>{isClinician() ? <Navigate to="/clinician" replace /> : <Dashboard />}</Guarded>
+        }
+      />
       <Route path="/today" element={<Guarded><TodaysPlan /></Guarded>} />
       <Route path="/check-in" element={<Guarded><CheckIn /></Guarded>} />
       <Route path="/medications" element={<Guarded><Medication /></Guarded>} />
@@ -69,6 +79,8 @@ function AppRoutes() {
       <Route path="/ask" element={<Guarded><AskAI /></Guarded>} />
       <Route path="/terms" element={<Guarded><ExplainTerms /></Guarded>} />
       <Route path="/accessibility" element={<Guarded><Accessibility /></Guarded>} />
+      <Route path="/access" element={<Guarded><CareAccess /></Guarded>} />
+      <Route path="/clinician" element={<Guarded><Clinician /></Guarded>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -96,7 +108,13 @@ export default function App() {
           </Link>
           {user && !needsSignIn && (
             <nav className="topbar-nav" aria-label="Primary">
-              {PRIMARY.map((item) => (
+              {(isClinician()
+                ? [
+                    { to: "/clinician", label: "Patients", icon: "ph-users-three" },
+                    { to: "/access", label: "Access", icon: "ph-lock-key" },
+                  ]
+                : PRIMARY
+              ).map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
@@ -120,7 +138,7 @@ export default function App() {
           <AppRoutes />
         </main>
 
-        {user && !needsSignIn && <BottomNav />}
+        {user && !needsSignIn && !isClinician() && <BottomNav />}
       </div>
     </AccessibilityProvider>
   );

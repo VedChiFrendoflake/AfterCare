@@ -11,6 +11,8 @@ export function AuthForm() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"patient" | "clinician">("patient");
+  const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -29,7 +31,7 @@ export function AuthForm() {
     setBusy(true);
     try {
       if (mode === "signin") await signIn(email, password);
-      else await signUp(email, password);
+      else await signUp(email, password, role, displayName.trim() || undefined);
       await refresh();
     } catch (err) {
       setError(friendlySessionError(err));
@@ -103,6 +105,39 @@ export function AuthForm() {
             At least {minLength} characters.
           </span>
         </div>
+
+        {/* Only on sign-up, and only where the API models roles. Choosing
+            "clinician" grants nothing by itself — a clinician still has to ask
+            each patient, and only that patient can say yes. */}
+        {mode === "signup" && dataMode === "backend" && (
+          <>
+            <div className="field">
+              <label htmlFor="account-role">This account is for</label>
+              <select
+                id="account-role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as "patient" | "clinician")}
+              >
+                <option value="patient">Me — I have discharge paperwork</option>
+                <option value="clinician">A clinician caring for patients</option>
+              </select>
+            </div>
+            {role === "clinician" && (
+              <div className="field">
+                <label htmlFor="display-name">Your name, as patients will see it</label>
+                <input
+                  id="display-name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Dr. Chen, City Cardiology"
+                />
+                <span className="gloss" style={{ fontSize: 14 }}>
+                  Shown to a patient deciding whether to approve your request.
+                </span>
+              </div>
+            )}
+          </>
+        )}
 
         {error && (
           <p className="error-text" role="alert">

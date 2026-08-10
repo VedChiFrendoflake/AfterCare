@@ -20,6 +20,7 @@ const MORE = [
   { to: "/ask", label: "Ask a Question", icon: "ph-question" },
   { to: "/emergency", label: "When to Get Help", icon: "ph-first-aid-kit" },
   { to: "/caregiver", label: "Caregiver Access", icon: "ph-users-three" },
+  { to: "/access", label: "Who Can See My Records", icon: "ph-lock-key" },
   { to: "/accessibility", label: "Accessibility", icon: "ph-person-simple-circle" },
 ];
 
