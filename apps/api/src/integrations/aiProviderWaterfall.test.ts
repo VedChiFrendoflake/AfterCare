@@ -149,23 +149,42 @@ describe("AI provider waterfall", () => {
     expect(operation).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
-    "authentication",
-    "authorization",
-    "malformed_request",
-    "programming",
-    "parsing",
-  ] as const)("does not fall back for %s failures", async (kind) => {
-    const failure = new AiProviderFailure(kind, `raw ${kind} failure`);
-    const operation = vi.fn(async () => {
-      throw failure;
-    });
+  // Bugs in our own code. Retrying these on another provider would produce the
+  // same broken request and bury the cause, so they still abort the waterfall.
+  it.each(["malformed_request", "programming", "parsing"] as const)(
+    "does not fall back for %s failures",
+    async (kind) => {
+      const failure = new AiProviderFailure(kind, `raw ${kind} failure`);
+      const operation = vi.fn(async () => {
+        throw failure;
+      });
 
-    await expect(runAiProviderWaterfall(operation, credentials)).rejects.toBe(
-      failure,
-    );
-    expect(operation).toHaveBeenCalledTimes(1);
-  });
+      await expect(runAiProviderWaterfall(operation, credentials)).rejects.toBe(
+        failure,
+      );
+      expect(operation).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  // A rejected key is this provider's problem, not the chain's. Throwing here
+  // meant one bad key stopped every working provider from being tried, and the
+  // /ask route then relabelled the throw as a retryable outage anyway.
+  it.each(["authentication", "authorization"] as const)(
+    "falls back past a %s failure",
+    async (kind) => {
+      const operation = vi.fn(async (context: { slot: string }) => {
+        if (context.slot === "openai") {
+          throw new AiProviderFailure(kind, `raw ${kind} failure`);
+        }
+        return "answered";
+      });
+
+      await expect(runAiProviderWaterfall(operation, credentials)).resolves.toBe(
+        "answered",
+      );
+      expect(operation).toHaveBeenCalledTimes(2);
+    },
+  );
 
   it.each([
     { status: 408 },
