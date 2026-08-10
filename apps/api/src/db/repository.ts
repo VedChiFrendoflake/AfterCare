@@ -9,10 +9,14 @@ import type {
   AdherenceRecord,
   AuditLogRecord,
   AuthProvider,
+  CareAlertRecord,
+  CareLinkRecord,
+  CareLinkStatus,
   DatabaseState,
   DocumentRecord,
   SessionRecord,
   UserRecord,
+  UserRole,
 } from "./schema.js";
 
 const state: DatabaseState = {
@@ -24,6 +28,8 @@ const state: DatabaseState = {
   adherence: [],
   preferences: new Map(),
   auditLogs: [],
+  careLinks: new Map(),
+  careAlerts: new Map(),
 };
 
 export const repository = {
@@ -31,10 +37,14 @@ export const repository = {
     email: string,
     passwordHash: string | null,
     provider: AuthProvider = "password",
+    role: UserRole = "patient",
+    displayName?: string,
   ): UserRecord {
     const user = {
       id: randomUUID(),
       email,
+      role,
+      displayName,
       passwordHash,
       provider,
       createdAt: new Date().toISOString(),
@@ -189,6 +199,94 @@ export const repository = {
     state.auditLogs.push(record);
     return record;
   },
+  /* ------------------------------- care links ------------------------------ */
+
+  createCareLink(clinicianId: string, patientId: string, reason?: string) {
+    const link: CareLinkRecord = {
+      id: randomUUID(),
+      clinicianId,
+      patientId,
+      status: "pending",
+      reason,
+      requestedAt: new Date().toISOString(),
+    };
+    state.careLinks.set(link.id, link);
+    return link;
+  },
+  findCareLink(linkId: string) {
+    return state.careLinks.get(linkId);
+  },
+  /** An existing request or grant between this pair, whatever its state. */
+  findCareLinkBetween(clinicianId: string, patientId: string) {
+    return [...state.careLinks.values()].find(
+      (link) => link.clinicianId === clinicianId && link.patientId === patientId,
+    );
+  },
+  setCareLinkStatus(linkId: string, status: CareLinkStatus) {
+    const link = state.careLinks.get(linkId);
+    if (!link) return undefined;
+    link.status = status;
+    link.respondedAt = new Date().toISOString();
+    return link;
+  },
+  listCareLinksForPatient(patientId: string) {
+    return [...state.careLinks.values()]
+      .filter((link) => link.patientId === patientId)
+      .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+  },
+  listCareLinksForClinician(clinicianId: string) {
+    return [...state.careLinks.values()]
+      .filter((link) => link.clinicianId === clinicianId)
+      .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+  },
+  /**
+   * The single question every clinician-facing read must ask. Anything other
+   * than an approved link — pending, denied, revoked, absent — is a no.
+   */
+  clinicianCanRead(clinicianId: string, patientId: string): boolean {
+    const link = this.findCareLinkBetween(clinicianId, patientId);
+    return link?.status === "approved";
+  },
+
+  /* --------------------------------- alerts -------------------------------- */
+
+  createCareAlert(
+    alert: Omit<CareAlertRecord, "id" | "createdAt" | "readBy">,
+  ): CareAlertRecord {
+    const record: CareAlertRecord = {
+      ...alert,
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      readBy: [],
+    };
+    state.careAlerts.set(record.id, record);
+    return record;
+  },
+  listAlertsForPatient(patientId: string) {
+    return [...state.careAlerts.values()]
+      .filter((alert) => alert.patientId === patientId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+  /** Only alerts from patients who have approved this clinician. */
+  listAlertsForClinician(clinicianId: string) {
+    const patientIds = new Set(
+      [...state.careLinks.values()]
+        .filter(
+          (link) => link.clinicianId === clinicianId && link.status === "approved",
+        )
+        .map((link) => link.patientId),
+    );
+    return [...state.careAlerts.values()]
+      .filter((alert) => patientIds.has(alert.patientId))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+  markAlertRead(alertId: string, clinicianId: string) {
+    const alert = state.careAlerts.get(alertId);
+    if (!alert) return undefined;
+    if (!alert.readBy.includes(clinicianId)) alert.readBy.push(clinicianId);
+    return alert;
+  },
+
   reset() {
     state.users.clear();
     state.sessions.clear();
@@ -198,6 +296,8 @@ export const repository = {
     state.adherence.length = 0;
     state.preferences.clear();
     state.auditLogs.length = 0;
+    state.careLinks.clear();
+    state.careAlerts.clear();
   },
   inspect: () => state,
 };

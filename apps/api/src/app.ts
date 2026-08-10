@@ -24,6 +24,7 @@ import { driveCallbackRouter, driveRouter } from "./routes/drive.js";
 import { medicationsRouter } from "./routes/medications.js";
 import { createProcessRouter } from "./routes/process.js";
 import { createUploadRouter } from "./routes/upload.js";
+import { careRouter } from "./routes/care.js";
 
 interface CreateAppOptions {
   queue?: PipelineQueue;
@@ -109,6 +110,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use("/drive", driveRouter);
   app.use("/accessibility", accessibilityRouter);
   app.use("/documents", documentsRouter);
+  app.use("/care", careRouter);
 
   app.use((_req, res) =>
     res.status(404).json({ error: "Route not found", code: "NOT_FOUND" }),

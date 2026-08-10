@@ -14,6 +14,10 @@ import { createTokens, hashToken } from "../middleware/auth.js";
 const credentials = z.object({
   email: z.email().transform((value) => value.toLowerCase()),
   password: z.string().min(12).max(128),
+  // Defaults to patient: an account only becomes a clinician by asking to be
+  // one at sign-up, and the role by itself grants no access to anyone's records.
+  role: z.enum(["patient", "clinician"]).default("patient"),
+  displayName: z.string().max(120).optional(),
 });
 
 const refreshSchema = z.object({ refreshToken: z.string().min(1) });
@@ -30,7 +34,16 @@ async function issueSession(userId: string, email: string) {
     await hashToken(tokens.refreshToken),
     new Date(Date.now() + tokens.refreshExpiresInSeconds * 1_000).toISOString(),
   );
-  return { user: { id: userId, email }, ...tokens };
+  const stored = repository.findUserById(userId);
+  return {
+    user: {
+      id: userId,
+      email,
+      role: stored?.role ?? "patient",
+      displayName: stored?.displayName,
+    },
+    ...tokens,
+  };
 }
 
 function verifyRefreshToken(raw: string): string {
@@ -67,7 +80,13 @@ authRouter.post("/register", async (req, res, next) => {
       );
     }
     const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-    const user = repository.createUser(parsed.data.email, passwordHash);
+    const user = repository.createUser(
+      parsed.data.email,
+      passwordHash,
+      "password",
+      parsed.data.role,
+      parsed.data.displayName,
+    );
     res.status(201).json(await issueSession(user.id, user.email));
   } catch (error) {
     next(error);
