@@ -106,6 +106,7 @@ function AskTheDocument({
     sourceLines: number[];
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<{ message: string; retryable: boolean } | null>(
     null
   );
@@ -117,7 +118,9 @@ function AskTheDocument({
     setBusy(true);
     setError(null);
     try {
-      const result = await backendAsk(documentId, trimmed);
+      const result = await backendAsk(documentId, trimmed, () =>
+        setRetrying(true)
+      );
       setAnswer({
         question: trimmed,
         answer: result.answer,
@@ -133,6 +136,7 @@ function AskTheDocument({
       });
     } finally {
       setBusy(false);
+      setRetrying(false);
     }
   }
 
@@ -146,6 +150,14 @@ function AskTheDocument({
         {busy && <span className="spinner" style={{ marginRight: 8 }} />}
         Ask my document
       </button>
+
+      {/* 30+ seconds of silent spinner reads as a hang. Say what is happening
+          instead: the assistant is busy and the app is waiting for it. */}
+      {retrying && (
+        <p className="gloss" role="status" style={{ marginTop: "var(--sp2)" }}>
+          The assistant is busy right now — waiting a moment and trying again.
+        </p>
+      )}
 
       {error && (
         <ErrorBanner

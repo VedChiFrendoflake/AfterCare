@@ -298,14 +298,38 @@ export async function backendMarkTaken(medicationId: string): Promise<void> {
  */
 const ASK_TIMEOUT_MS = 90_000;
 
+/**
+ * How long to wait before trying a busy assistant again.
+ *
+ * The API sits a rate-limited provider out for 30s. Asking a question straight
+ * after a document finishes processing lands in exactly that window — the
+ * pipeline has just spent the free-tier budget on seven stages — so the first
+ * attempt reliably fails for a reason that clears itself. Waiting slightly
+ * longer than the cooldown turns "ask again in a moment" into something the app
+ * does rather than something the reader has to know.
+ */
+const ASK_RETRY_DELAY_MS = 32_000;
+
+const wait = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener("abort", () => {
+      clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    });
+  });
+
 /** Grounded answer plus the document lines it was drawn from. */
 export async function backendAsk(
   documentId: string,
-  question: string
+  question: string,
+  /** Called if the first attempt was refused as temporary and a retry is queued. */
+  onRetrying?: () => void
 ): Promise<AskGroundedResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ASK_TIMEOUT_MS);
-  try {
+
+  const attempt = async (): Promise<AskGroundedResult> => {
     const res = await authedFetch("/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -314,8 +338,21 @@ export async function backendAsk(
     });
     if (!res.ok) throw await readApiError(res);
     return (await res.json()) as AskGroundedResult;
+  };
+
+  try {
+    try {
+      return await attempt();
+    } catch (error) {
+      // Only for a failure the server itself called temporary. A refused
+      // question or a missing configuration is retried by nobody: it would
+      // burn the whole 90s budget to arrive at the same answer.
+      if (!(error instanceof ApiError) || !error.retryable) throw error;
+      onRetrying?.();
+      await wait(ASK_RETRY_DELAY_MS, controller.signal);
+      return await attempt();
+    }
   } catch (error) {
-    // Marked retryable: unlike a rejected question, waiting really can work.
     if ((error as Error)?.name === "AbortError") {
       throw new ApiError(
         "The assistant didn't answer in time. It may be busy — try again, or check the original document.",
