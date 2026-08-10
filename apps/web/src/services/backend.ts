@@ -287,18 +287,47 @@ export async function backendMarkTaken(medicationId: string): Promise<void> {
   if (!res.ok) throw new Error(await readError(res));
 }
 
+/**
+ * How long to wait for an answer before giving up on it.
+ *
+ * The API allows each provider 45s and can walk a waterfall of four, so a
+ * request that goes badly can outlast anyone's patience while showing no sign
+ * of whether it is still working. 90s is past the point where a real answer is
+ * plausible, and stopping there gives the reader the same honest "couldn't
+ * answer" message a refusal would, rather than an endless spinner.
+ */
+const ASK_TIMEOUT_MS = 90_000;
+
 /** Grounded answer plus the document lines it was drawn from. */
 export async function backendAsk(
   documentId: string,
   question: string
 ): Promise<AskGroundedResult> {
-  const res = await authedFetch("/ask", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ documentId, question }),
-  });
-  if (!res.ok) throw await readApiError(res);
-  return (await res.json()) as AskGroundedResult;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ASK_TIMEOUT_MS);
+  try {
+    const res = await authedFetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentId, question }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw await readApiError(res);
+    return (await res.json()) as AskGroundedResult;
+  } catch (error) {
+    // Marked retryable: unlike a rejected question, waiting really can work.
+    if ((error as Error)?.name === "AbortError") {
+      throw new ApiError(
+        "The assistant didn't answer in time. It may be busy — try again, or check the original document.",
+        "ASK_TIMEOUT",
+        true,
+        504
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /* ------------------------------ mapping ------------------------------ */
