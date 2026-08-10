@@ -4,6 +4,7 @@ import type {
   RecoveryPlan,
   StructuredAiError,
 } from "@discharge-guide/shared-types";
+import type { OcrResult } from "../pipeline/types.js";
 
 export type AuthProvider = "password" | "google";
 
@@ -51,6 +52,16 @@ export interface DocumentRecord {
   failure?: StructuredAiError;
   failureOriginalDocumentUrl?: string;
   plan?: RecoveryPlan;
+  /**
+   * The transcription the pipeline already produced.
+   *
+   * Kept so /ask can answer from it instead of reloading the file and running
+   * OCR a second time. That second pass was both the slow path and a failure
+   * path: for an image it re-ran vision transcription on every question, and
+   * when it failed the result was reported as an AI outage even though no
+   * provider had been contacted.
+   */
+  ocr?: OcrResult;
 }
 
 export interface AccessibilityPreferences {

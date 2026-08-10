@@ -7,6 +7,14 @@ import { EventEmitter } from "node:events";
 import { repository } from "../db/repository.js";
 import { isStructuredAiError, sanitizeAiError } from "../errors.js";
 import { runPipeline } from "../pipeline/orchestrator.js";
+import type { OcrResult } from "../pipeline/types.js";
+
+/** Narrow the stage event's `unknown` payload before persisting it. */
+function isOcrResult(value: unknown): value is OcrResult {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as { lines?: unknown; text?: unknown };
+  return Array.isArray(candidate.lines) && typeof candidate.text === "string";
+}
 
 export interface StreamEvent extends PipelineEvent {
   documentId: string;
@@ -55,6 +63,19 @@ export function createPipelineQueue(
     options.maxHistoryPerDocument ?? DEFAULT_MAX_HISTORY;
 
   function publish(documentId: string, event: PipelineEvent) {
+    // Keep the transcription the pipeline just produced. /ask used to reload
+    // the file and run OCR a second time to answer a question — for an image
+    // that meant a fresh vision call per question, and when that pass failed
+    // the answer came back as an AI outage despite no provider having been
+    // contacted at all.
+    if (
+      event.stage === "ocr" &&
+      event.status === "completed" &&
+      isOcrResult(event.data)
+    ) {
+      repository.updateDocument(documentId, { ocr: event.data });
+    }
+
     const streamEvent = {
       ...event,
       ...(event.status === "failed" && event.error

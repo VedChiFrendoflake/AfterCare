@@ -114,6 +114,24 @@ export async function askGrounded(
       retryable: false,
     };
   }
+  // The pipeline already transcribed this document, and the queue keeps that
+  // result. Answering from it is both faster and safer than transcribing
+  // again: the second pass re-ran vision on every question for an image, and
+  // any failure in it surfaced as an AI outage even though no provider had
+  // been contacted. Falling back to a fresh pass keeps documents that predate
+  // this working.
+  if (document.ocr && document.ocr.lines.length > 0) {
+    const answer = await askFromOcr(inputOrQuestion.question, document.ocr);
+    return {
+      answer: answer.answer,
+      confidence: answer.confidence,
+      source: {
+        documentId: inputOrQuestion.documentId,
+        sourceLines: answer.sourceLines,
+      },
+    };
+  }
+
   // Re-using the document's file hash keeps repeat questions on the same
   // document from re-running OCR (expensive for scanned PDFs). The storage
   // read stays inside the compute callback so a cache hit skips it too.
