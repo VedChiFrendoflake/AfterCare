@@ -177,9 +177,10 @@ describe("provider SDK adapters", () => {
       callJson({ system: "s", user: "u", maxRetries: 0 }),
     ).resolves.toEqual({ e: 5 });
     expect(openaiCreateMock).toHaveBeenCalledTimes(2);
-    expect(openaiCreateMock.mock.calls[1]?.[0].model).toBe(
-      "deepseek/deepseek-chat-v3-0324:free",
-    );
+    // Asserts the free OpenRouter default was used, not one particular slug:
+    // OpenRouter retires free models regularly, and pinning the string here
+    // meant a retired model broke the suite rather than being caught in prod.
+    expect(openaiCreateMock.mock.calls[1]?.[0].model).toMatch(/:free$/);
   });
 
   it("uses OpenRouter when OpenAI is not configured", async () => {
@@ -192,9 +193,7 @@ describe("provider SDK adapters", () => {
     await expect(callJson({ system: "s", user: "u" })).resolves.toEqual({
       f: 6,
     });
-    expect(openaiCreateMock.mock.calls[0]?.[0].model).toBe(
-      "deepseek/deepseek-chat-v3-0324:free",
-    );
+    expect(openaiCreateMock.mock.calls[0]?.[0].model).toMatch(/:free$/);
   });
 
   it("honors an OpenRouter model override", async () => {

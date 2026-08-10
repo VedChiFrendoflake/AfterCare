@@ -132,7 +132,8 @@ function isValidationFailure(error: unknown) {
 }
 
 /**
- * A key the provider rejected: wrong, revoked, or without access to the model.
+ * The provider refused to serve this request at all: a key that is wrong,
+ * revoked, or without access — or a model it does not have.
  *
  * These used to be thrown, on the principle that a misconfiguration should fail
  * loudly rather than hide behind a fallback. The principle is right; throwing
@@ -151,12 +152,16 @@ function isValidationFailure(error: unknown) {
  * bugs in our own code and still throw, because retrying them on a different
  * provider would only hide them.
  */
-export function isProviderCredentialFailure(error: unknown) {
+export function isProviderUnusable(error: unknown) {
   if (error instanceof AiProviderFailure) {
     return error.kind === "authentication" || error.kind === "authorization";
   }
   const status = statusCode(error);
-  return status === 401 || status === 403;
+  // 404 belongs here with the credential failures: OpenRouter returns it for a
+  // retired model slug, and free slugs are retired often. Treated as a bug it
+  // aborted the waterfall, so one dead model silently took every other
+  // provider down with it and the whole product ran on regex fallbacks.
+  return status === 401 || status === 403 || status === 404;
 }
 
 /**
@@ -290,7 +295,7 @@ export async function runAiProviderWaterfall<T>(
   // Tracked so the outcome can tell "every key was rejected" (a deployment
   // problem, not retryable) apart from "providers were busy" (retryable).
   let attempted = 0;
-  let credentialRejections = 0;
+  let unusableProviders = 0;
 
   for (const provider of providers) {
     if (!provider.apiKey) continue;
@@ -304,8 +309,8 @@ export async function runAiProviderWaterfall<T>(
       });
     } catch (error) {
       if (isValidationFailure(error)) return { ...VALIDATION_FAILED };
-      if (isProviderCredentialFailure(error)) {
-        credentialRejections += 1;
+      if (isProviderUnusable(error)) {
+        unusableProviders += 1;
         // Sat out far longer than a rate limit: a rejected key does not
         // recover on its own, so re-testing it every 30s only adds latency to
         // every request that has to walk past it.
@@ -320,10 +325,10 @@ export async function runAiProviderWaterfall<T>(
     }
   }
 
-  // Every provider we actually tried rejected its key. Calling that a
-  // temporary outage would invite a patient to keep retrying something that
-  // will never succeed until someone fixes the configuration.
-  if (attempted > 0 && credentialRejections === attempted) {
+  // Every provider we tried refused the request outright — bad key, or a model
+  // it does not have. Calling that a temporary outage would invite a patient to
+  // keep retrying something that cannot succeed until the config is fixed.
+  if (attempted > 0 && unusableProviders === attempted) {
     return { ...PROVIDER_CONFIG_MISSING };
   }
 

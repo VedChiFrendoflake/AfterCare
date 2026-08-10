@@ -31,8 +31,19 @@ const geminiModel = () => process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 /** The Gemini fallback slot can use a cheaper/different model (e.g. flash-lite). */
 const geminiFallbackModel = () =>
   process.env.GEMINI_FALLBACK_MODEL ?? geminiModel();
+/**
+ * The previous default, `deepseek/deepseek-chat-v3-0324:free`, has been retired
+ * by OpenRouter and is no longer in its model list. Requests for it returned
+ * 404 — neither retryable nor a credential failure — which aborted the whole
+ * waterfall before Gemini was ever reached. Every AI call in the product
+ * silently fell back to regex heuristics, and /ask, which has no fallback,
+ * failed outright.
+ *
+ * Free slugs get retired regularly, so the guard in the waterfall matters more
+ * than this value: a dead model should cost that one provider, not all of them.
+ */
 const openrouterModel = () =>
-  process.env.OPENROUTER_MODEL ?? "deepseek/deepseek-chat-v3-0324:free";
+  process.env.OPENROUTER_MODEL ?? "google/gemma-4-31b-it:free";
 
 /** Per-provider request timeout. `AI_TIMEOUT_MS` overrides the default. */
 function providerTimeoutMs(): number {

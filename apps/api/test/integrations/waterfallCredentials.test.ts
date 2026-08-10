@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   AiProviderFailure,
   configuredProviders,
-  isProviderCredentialFailure,
+  isProviderUnusable,
   resetProviderCooldowns,
   runAiProviderWaterfall,
 } from "../../src/integrations/aiProviderWaterfall.js";
@@ -21,21 +21,37 @@ const rejected = (status: number) =>
   Object.assign(new Error("rejected"), { status });
 
 describe("waterfall credential handling", () => {
-  it("recognises a rejected key, and only a rejected key", () => {
-    expect(isProviderCredentialFailure(rejected(401))).toBe(true);
-    expect(isProviderCredentialFailure({ statusCode: 403 })).toBe(true);
+  it("recognises a refused request, and only a refused request", () => {
+    expect(isProviderUnusable(rejected(401))).toBe(true);
+    expect(isProviderUnusable({ statusCode: 403 })).toBe(true);
     expect(
-      isProviderCredentialFailure(new AiProviderFailure("authentication")),
+      isProviderUnusable(new AiProviderFailure("authentication")),
     ).toBe(true);
     expect(
-      isProviderCredentialFailure(new AiProviderFailure("authorization")),
+      isProviderUnusable(new AiProviderFailure("authorization")),
     ).toBe(true);
 
-    expect(isProviderCredentialFailure(rejected(429))).toBe(false);
-    expect(isProviderCredentialFailure(new AiProviderFailure("server"))).toBe(false);
-    expect(isProviderCredentialFailure(new AiProviderFailure("programming"))).toBe(
+    // A retired model slug: OpenRouter answers 404, and it must not abort the
+    // chain — that is exactly how one dead model took all AI down.
+    expect(isProviderUnusable(rejected(404))).toBe(true);
+
+    expect(isProviderUnusable(rejected(429))).toBe(false);
+    expect(isProviderUnusable(new AiProviderFailure("server"))).toBe(false);
+    expect(isProviderUnusable(new AiProviderFailure("programming"))).toBe(
       false,
     );
+  });
+
+  it("walks past a retired model to the next provider", async () => {
+    const tried: string[] = [];
+    const result = await runAiProviderWaterfall(async (context) => {
+      tried.push(context.slot);
+      if (context.slot === "openrouter") throw rejected(404);
+      return "gemini answered";
+    }, { openrouter: "or", geminiPrimary: "gp" });
+
+    expect(tried).toEqual(["openrouter", "gemini_primary"]);
+    expect(result).toBe("gemini answered");
   });
 
   it("walks past a rejected key to the next provider", async () => {
