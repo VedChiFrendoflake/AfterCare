@@ -6,69 +6,93 @@ import type { Medication } from "../../types";
 
 function MedicationRow({ med }: { med: Medication }) {
   const [open, setOpen] = useState(false);
+  const hasDetail =
+    Boolean(med.foodInstructions) ||
+    Boolean(med.missedDoseInstructions) ||
+    (med.sideEffects?.length ?? 0) > 0;
+
   return (
-    <div className="card divider-section">
-      <div className="row-between">
-        <div>
+    <div className="med-card">
+      <span className="med-mark" aria-hidden="true">
+        <i className="ph-duotone ph-pill" />
+      </span>
+
+      <div className="med-main">
+        <div className="med-title">
           <Verbatim as="h3">{med.name}</Verbatim>
-          <Verbatim as="p" className="gloss">
-            {med.genericName ? `${med.genericName} · ` : ""}
-            {med.dose} · {med.frequency}
+          {/* The dose is the thing someone is scanning for, so it sits beside
+              the name at full weight rather than in the grey sub-line. */}
+          <Verbatim as="span" className="med-dose">
+            {med.dose}
           </Verbatim>
         </div>
-        <button
-          className="btn-ghost"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-        >
-          {open ? "Hide details" : "Details"}
-        </button>
-      </div>
-      <p className="gloss" style={{ marginTop: 8 }}>
-        {med.purpose}
-      </p>
-      {/* These report a schedule rather than offering a choice. Styled as
-          chips, all three read as pressable and the two that aren't part of
-          the prescription looked merely unselected. The icon and the
-          strike-through carry the meaning, so it isn't colour alone. */}
-      <div className="slots">
-        {(
-          [
-            ["Morning", med.morning, "ph-sun-horizon"],
-            ["Afternoon", med.afternoon, "ph-sun"],
-            ["Evening", med.evening, "ph-moon"],
-          ] as const
-        ).map(([label, on, icon]) => (
-          <span key={label} className={`slot ${on ? "on" : "off"}`}>
-            <i className={`ph-duotone ${icon}`} aria-hidden="true" />
-            {label}
-            <span className="sr-only">{on ? " — scheduled" : " — not scheduled"}</span>
-          </span>
-        ))}
-      </div>
-      {open && (
-        <div
-          style={{
-            marginTop: 12,
-            borderTop: "1px solid var(--color-divider)",
-            paddingTop: 12,
-          }}
-        >
-          {med.foodInstructions && (
-            <p className="gloss">Food: {med.foodInstructions}</p>
-          )}
-          {med.sideEffects && med.sideEffects.length > 0 && (
-            <p className="gloss">
-              Possible side effects: {med.sideEffects.join(", ")}
-            </p>
-          )}
-          {med.missedDoseInstructions && (
-            <p className="gloss">
-              If you miss a dose: {med.missedDoseInstructions}
-            </p>
-          )}
+
+        <Verbatim as="p" className="gloss med-sub">
+          {[med.genericName, med.frequency, med.foodInstructions]
+            .filter(Boolean)
+            .join(" · ")}
+        </Verbatim>
+
+        {med.purpose && <p className="med-purpose">{med.purpose}</p>}
+
+        {/* These report a schedule rather than offering a choice. Styled as
+            chips, all three read as pressable and the two that aren't part of
+            the prescription looked merely unselected. The icon and the
+            strike-through carry the meaning, so it isn't colour alone. */}
+        <div className="slots">
+          {(
+            [
+              ["Morning", med.morning, "ph-sun-horizon"],
+              ["Afternoon", med.afternoon, "ph-sun"],
+              ["Evening", med.evening, "ph-moon"],
+            ] as const
+          ).map(([label, on, icon]) => (
+            <span key={label} className={`slot ${on ? "on" : "off"}`}>
+              <i className={`ph-duotone ${icon}`} aria-hidden="true" />
+              {label}
+              <span className="sr-only">
+                {on ? " — scheduled" : " — not scheduled"}
+              </span>
+            </span>
+          ))}
         </div>
-      )}
+
+        {/* Only offered when there is something behind it — a "Details" button
+            that opens an empty panel is worse than no button. */}
+        {hasDetail && (
+          <>
+            <button
+              className="btn-ghost med-toggle"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+            >
+              {open ? "Hide details" : "Details"}
+            </button>
+            {open && (
+              <dl className="med-detail">
+                {med.foodInstructions && (
+                  <>
+                    <dt>Food</dt>
+                    <dd>{med.foodInstructions}</dd>
+                  </>
+                )}
+                {med.sideEffects && med.sideEffects.length > 0 && (
+                  <>
+                    <dt>Possible side effects</dt>
+                    <dd>{med.sideEffects.join(", ")}</dd>
+                  </>
+                )}
+                {med.missedDoseInstructions && (
+                  <>
+                    <dt>If you miss a dose</dt>
+                    <dd>{med.missedDoseInstructions}</dd>
+                  </>
+                )}
+              </dl>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -76,10 +100,12 @@ function MedicationRow({ med }: { med: Medication }) {
 export default function Medication() {
   return (
     <div>
-      <h1>Medications</h1>
-      <p className="gloss measure">
-        From your own medication list — nothing here is guessed.
-      </p>
+      <div className="page-head">
+        <h1>Medications</h1>
+        <p className="lede">
+          From your own medication list — nothing here is guessed.
+        </p>
+      </div>
       <RecoveryGate
         emptyState={{
           icon: "ph-pill",

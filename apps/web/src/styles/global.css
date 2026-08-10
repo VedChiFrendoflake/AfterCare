@@ -281,6 +281,39 @@ a.card-link:focus-visible{box-shadow:var(--ring);}
 .mini-list li:last-child{border-bottom:none;padding-bottom:0;}
 .mini-list .gloss{font-size:15px;}
 
+/* --------------------------------------------------------- medication card */
+
+/* A marker column plus a tight content column. The previous card stacked five
+   loosely-spaced blocks in a full-width box, so three medications filled a
+   laptop screen and the dose — the thing people scan for — sat in grey
+   sub-text below the name. */
+.med-card{display:flex;gap:var(--sp3);align-items:flex-start;
+  border:1px solid var(--color-divider);border-radius:var(--radius);
+  background:var(--color-surface);box-shadow:var(--shadow-sm);
+  padding:var(--sp3) var(--sp4);margin-bottom:var(--sp3);}
+.med-mark{display:inline-flex;align-items:center;justify-content:center;
+  width:40px;height:40px;flex:none;border-radius:10px;
+  background:var(--a100);color:var(--a700);font-size:21px;}
+:root[data-dark="true"] .med-mark{background:#0d2b36;color:#7fdcff;}
+.med-main{flex:1;min-width:0;}
+.med-title{display:flex;align-items:baseline;gap:var(--sp2);flex-wrap:wrap;}
+.med-title h3{margin:0;}
+.med-dose{font-weight:700;font-size:calc(17px * var(--scale));color:var(--a700);
+  background:var(--a100);border-radius:999px;padding:1px 10px;white-space:nowrap;}
+:root[data-dark="true"] .med-dose{background:#0d2b36;color:#7fdcff;}
+.med-sub{margin:2px 0 0;font-size:15px;}
+.med-purpose{margin:var(--sp2) 0 0;font-size:calc(16px * var(--scale));}
+.med-toggle{margin-top:var(--sp2);font-size:15px;padding:0;}
+.med-detail{margin:var(--sp2) 0 0;padding-top:var(--sp2);
+  border-top:1px solid var(--color-divider);display:grid;grid-template-columns:auto 1fr;
+  gap:4px var(--sp3);font-size:15px;}
+.med-detail dt{font-weight:600;color:var(--n700);}
+.med-detail dd{margin:0;}
+@media (max-width:520px){
+  .med-detail{grid-template-columns:1fr;gap:2px;}
+  .med-detail dd{margin-bottom:var(--sp2);}
+}
+
 /* --------------------------------------------------------- schedule slots */
 
 /* These report a schedule; they are not controls. The old styling reused .chip,

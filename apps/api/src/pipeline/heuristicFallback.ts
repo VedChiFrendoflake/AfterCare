@@ -244,7 +244,7 @@ export function fallbackMedications(
     if (/prescribed antibiotics/i.test(text) && !/\d/.test(text)) continue;
 
     const match = text.match(
-      /^(?:[-*]\s*)?(?:\d+\.\s*)?(?<name>[A-Z][A-Za-z0-9' -]{1,60}?)\s+(?<dose>\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|mL|units?|iu|puffs?|tablets?|tabs?|capsules?|caps?)(?:\s+[A-Za-z]+)?)(?<rest>.*)$/i,
+      /^(?:[-*]\s*)?(?:\d+\.\s*)?(?<name>[A-Z][A-Za-z0-9' -]{1,60}?)\s+(?<dose>\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|mL|units?|iu|puffs?|tablets?|tabs?|capsules?|caps?)(?:\s+(?:tablets?|tabs?|capsules?|caps?|pills?|puffs?|sprays?|patch(?:es)?|drops?|injections?|doses?|suppositor(?:y|ies)))?)(?<rest>.*)$/i,
     );
     if (!match?.groups) continue;
 
