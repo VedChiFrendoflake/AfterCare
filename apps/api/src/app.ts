@@ -5,7 +5,10 @@ import { cacheStatus, pingCache } from "./cache/index.js";
 import { config } from "./config.js";
 import { corsOriginDelegate } from "./cors.js";
 import { databaseHealth } from "./db/client.js";
-import { providerCooldownStatus } from "./integrations/aiProviderWaterfall.js";
+import {
+  configuredProviders,
+  providerCooldownStatus,
+} from "./integrations/aiProviderWaterfall.js";
 import { AiApiError, AppError } from "./errors.js";
 import { googleDriveStatus } from "./integrations/googleDrive.js";
 import type { IdTokenVerifier } from "./integrations/googleIdentity.js";
@@ -78,12 +81,11 @@ export function createApp(options: CreateAppOptions = {}) {
       // configured (never their keys) and the per-provider request timeout.
       ai: {
         timeoutMs: config.AI_TIMEOUT_MS,
-        waterfall: {
-          openai: Boolean(config.OPENAI_API_KEY),
-          openrouter: Boolean(config.OPENROUTER_API_KEY),
-          geminiPrimary: Boolean(config.GEMINI_API_KEY_PRIMARY),
-          geminiFallback: Boolean(config.GEMINI_API_KEY_FALLBACK),
-        },
+        // Reports what the waterfall will actually attempt, not merely which
+        // env vars are present: a key set to an empty or whitespace value is
+        // skipped at request time, and saying "configured" here made that
+        // impossible to spot from outside.
+        waterfall: configuredProviders(),
         // Circuit-breaker state: ms remaining per provider on cooldown.
         cooldowns: providerCooldownStatus(),
       },

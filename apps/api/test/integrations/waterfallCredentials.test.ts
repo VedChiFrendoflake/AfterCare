@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   AiProviderFailure,
+  configuredProviders,
   isProviderCredentialFailure,
   resetProviderCooldowns,
   runAiProviderWaterfall,
@@ -114,5 +115,43 @@ describe("waterfall credential handling", () => {
     // provider would only produce the same unusable result.
     expect(tried).toEqual(["openai"]);
     expect(result).toMatchObject({ code: "AI_VALIDATION_FAILED" });
+  });
+});
+
+describe("configuredProviders", () => {
+  it("counts a real key as configured", () => {
+    expect(configuredProviders({ openai: "sk-real", openrouter: "or-real" })).toMatchObject({
+      openai: true,
+      openrouter: true,
+      geminiPrimary: false,
+      geminiFallback: false,
+    });
+  });
+
+  it("does not count a blank or whitespace key", () => {
+    // The case that made this undebuggable: /health said configured while the
+    // waterfall skipped the provider, so requests failed instantly with no
+    // cooldown to point at.
+    expect(
+      configuredProviders({ openai: "", openrouter: "   ", geminiPrimary: "\n\t" }),
+    ).toMatchObject({
+      openai: false,
+      openrouter: false,
+      geminiPrimary: false,
+      geminiFallback: false,
+    });
+  });
+
+  it("agrees with what the waterfall attempts", async () => {
+    const creds = { openai: "  ", openrouter: "or-real" };
+    const tried: string[] = [];
+    await runAiProviderWaterfall(async (context) => {
+      tried.push(context.slot);
+      return "ok";
+    }, creds);
+
+    const reported = configuredProviders(creds);
+    expect(reported.openai).toBe(false);
+    expect(tried).toEqual(["openrouter"]);
   });
 });

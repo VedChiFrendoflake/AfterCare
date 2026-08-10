@@ -223,6 +223,28 @@ function normalizedCredential(value: string | undefined) {
   return credential ? credential : undefined;
 }
 
+/**
+ * Which providers the waterfall will actually attempt.
+ *
+ * Exported so /health reports this rather than `Boolean(key)`. The two
+ * disagreed on a key that was present but empty or whitespace — Render will
+ * happily store one — and /health called it configured while the waterfall
+ * skipped it. That combination is close to undebuggable from outside: the
+ * status page says the provider is there, and requests fail instantly with no
+ * cooldown to show for it.
+ */
+export function configuredProviders(
+  credentials: AiProviderCredentials = configuredCredentials(),
+): Record<keyof AiProviderCredentials, boolean> {
+  return {
+    openai: normalizedCredential(credentials.openai) !== undefined,
+    openrouter: normalizedCredential(credentials.openrouter) !== undefined,
+    geminiPrimary: normalizedCredential(credentials.geminiPrimary) !== undefined,
+    geminiFallback:
+      normalizedCredential(credentials.geminiFallback) !== undefined,
+  };
+}
+
 export async function runAiProviderWaterfall<T>(
   operation: AiProviderOperation<T>,
   credentials: AiProviderCredentials = configuredCredentials(),
