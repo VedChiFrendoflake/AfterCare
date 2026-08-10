@@ -72,6 +72,11 @@ export function createApp(options: CreateAppOptions = {}) {
     res.status(ok ? 200 : 503).json({
       status: ok ? "ok" : "degraded",
       service: "discharge-guide-api",
+      // Which build is actually serving. Without this, "is my fix deployed?"
+      // can only be answered by inferring from behaviour, and a wrong guess
+      // there sends you debugging code that isn't running. Render sets
+      // RENDER_GIT_COMMIT; short sha only, and it is not a secret.
+      commit: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? "unknown",
       database,
       storage: storageStatus(),
       cache,
